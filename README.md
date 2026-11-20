@@ -7,7 +7,9 @@
 
 An original, offline, multi-panel crime-poster studio. Your photos never leave your device. MIT licensed.
 
-Open `app/index.html` directly in desktop Chrome, or run `node serve.ts` and visit `http://localhost:8080`. No installation, build step, dependencies, API, or network connection is needed.
+Open `app/index.html` directly in a desktop browser, or run `node serve.ts` and visit `http://localhost:8080`. No installation, build step, dependencies, API, or network connection is needed.
+
+The studio runs 100% offline.
 
 Drop one or more images, edit your headline and tagline, choose Fracture, Classic, or Cinema composition and one of four color stories. Click a panel to select it, click a photo thumbnail to assign it, drag to reframe, and adjust zoom. Numbered panel buttons and the content selector make every panel accessible. Use “Use this photo in every panel” to build from a single photo; each crop stays independent. Horizontal and vertical sliders or arrow keys position the selected photo precisely. Original scenery can be restored per panel. Optional local comic-ink processing and deterministic print grain are included. Export a real PNG at 1080×1080, 1080×1350, or 1920×1080.
 
