@@ -1,5 +1,6 @@
 [
-  { "name": "1-cover.jpg", "query": "?shot=cover&photo=pier&caption=Sunset%20Heist", "w": 1080, "h": 1080 },
-  { "name": "2-editor.jpg", "query": "?shot=editor&photo=boulevard&caption=Boulevard%20Queen", "w": 1280, "h": 720 },
-  { "name": "3-cover.jpg", "query": "?shot=cover&photo=boulevard&caption=Boulevard%20Queen", "w": 1080, "h": 1080 }
+ {"name":"1-cover.jpg","query":"?shot=cover","w":1080,"h":1080},
+ {"name":"2-editor.jpg","query":"?shot=editor","w":1440,"h":1080},
+ {"name":"3-portrait.jpg","query":"?shot=cover&size=1080x1350&grade=neon&caption=NEON%20RUNAWAY","w":1080,"h":1350},
+ {"name":"4-landscape.jpg","query":"?shot=cover&size=1920x1080&grade=gold&layout=blocks&caption=GOLDEN%20OUTLAWS","w":1920,"h":1080}
 ]

@@ -1,35 +1,38 @@
-// Draws the cover: the photo filling the square, a sunset tint rising from the bottom, and the caption in bold
-// white capitals along the foot.
-
-/** Draws `photo` (an image, or null) and `caption` onto the canvas's 2D context, at the canvas's own size. */
-export function drawCover(canvas, photo, caption) {
-  const ctx = canvas.getContext('2d');
-  const { width: w, height: h } = canvas;
-  ctx.fillStyle = '#2b1838';
-  ctx.fillRect(0, 0, w, h);
-  if (photo) {
-    const scale = Math.max(w / photo.naturalWidth, h / photo.naturalHeight);
-    const pw = photo.naturalWidth * scale;
-    const ph = photo.naturalHeight * scale;
-    ctx.drawImage(photo, (w - pw) / 2, (h - ph) / 2, pw, ph);
-  }
-  const tint = ctx.createLinearGradient(0, h * 0.35, 0, h);
-  tint.addColorStop(0, 'rgba(255, 120, 80, 0)');
-  tint.addColorStop(1, 'rgba(200, 40, 120, 0.65)');
-  ctx.fillStyle = tint;
-  ctx.fillRect(0, 0, w, h);
-  const text = caption.trim().toUpperCase();
-  if (!text) return;
-  let size = h * 0.12;
-  ctx.font = `bold ${size}px sans-serif`;
-  while (ctx.measureText(text).width > w * 0.9 && size > 12) {
-    size -= 2;
-    ctx.font = `bold ${size}px sans-serif`;
-  }
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-  ctx.shadowBlur = size * 0.2;
-  ctx.fillText(text, w / 2, h - h * 0.07);
-  ctx.shadowBlur = 0;
+// Original, deterministic poster renderer. All artwork and effects are generated locally.
+const palettes = {
+ sunset: {sky:['#492a71','#ee7592','#ffcd8c'],light:'#ffdfaa',accent:'#fa9c91',dark:'#181528'},
+ neon:{sky:['#141d49','#8a4295','#f788c2'],light:'#9cf6e5',accent:'#64e8de',dark:'#13172c'},
+ gold:{sky:['#3c2738','#bb755b','#f6d392'],light:'#ffe3a3',accent:'#d4b372',dark:'#211d25'},
+ ice:{sky:['#182b58','#457fa2','#a5ddd3'],light:'#d4ffe6',accent:'#6edfd9',dark:'#121d31'}
+};
+function panels(layout='fracture'){
+ if(layout==='blocks')return [[[.015,.015],[.33,.015],[.33,.31],[.015,.31]],[[.34,.015],[.985,.015],[.985,.64],[.34,.64]],[[.015,.325],[.33,.325],[.33,.65],[.015,.65]],[[.015,.665],[.49,.665],[.49,.985],[.015,.985]],[[.505,.655],[.985,.655],[.985,.985],[.505,.985]]];
+ if(layout==='cinema')return [[[.015,.015],[.985,.015],[.985,.25],[.015,.25]],[[.24,.265],[.76,.265],[.8,.83],[.2,.83]],[[.015,.265],[.225,.265],[.185,.83],[.015,.83]],[[.775,.265],[.985,.265],[.985,.83],[.815,.83]],[[.015,.845],[.985,.845],[.985,.985],[.015,.985]]];
+ return [[[.015,.015],[.49,.015],[.44,.305],[.015,.365]],[[.505,.015],[.985,.015],[.985,.665],[.665,.71],[.455,.30]],[[.015,.38],[.438,.32],[.59,.64],[.015,.72]],[[.015,.735],[.59,.66],[.68,.985],[.015,.985]],[[.61,.735],[.985,.68],[.985,.985],[.695,.985]]];
+}
+function path(c,p,w,h){c.beginPath();p.forEach(([x,y],i)=>i?c.lineTo(x*w,y*h):c.moveTo(x*w,y*h));c.closePath()}
+function palm(c,x,y,s,flip=1){c.save();c.translate(x,y);c.scale(s*flip,s);c.fillStyle='#121728';c.strokeStyle='#121728';c.lineWidth=8;c.beginPath();c.moveTo(0,140);c.quadraticCurveTo(10,58,0,0);c.stroke();for(let i=0;i<9;i++){let a=-Math.PI+.36*i;c.save();c.rotate(a);c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(35,-35,100,10);c.quadraticCurveTo(40,-9,0,0);c.fill();for(let j=2;j<7;j++){c.beginPath();c.moveTo(j*12,-11);c.lineTo(j*12+10,13+j);c.lineTo(j*12+3,-5);c.fill()}c.restore()}c.restore()}
+function skyline(c,x,y,w,h,p){for(let i=0;i<18;i++){let bh=h*(.15+((i*71+17)%100)/130),bw=w/21;c.fillStyle=i%3===0?'#45304b':'#242439';c.fillRect(x+i*w/18,y-bh,bw,bh);c.fillStyle=p.light;for(let r=0;r<7;r++)for(let k=0;k<2;k++)if((i+r+k)%3)c.fillRect(x+i*w/18+4+k*bw*.45,y-bh+6+r*bh/8,2,3)}}
+function scene(c,b,type,p){let {x,y,w,h}=b;c.save();c.beginPath();c.rect(x,y,w,h);c.clip();let g=c.createLinearGradient(0,y,0,y+h);p.sky.forEach((v,i)=>g.addColorStop(i/2,v));c.fillStyle=g;c.fillRect(x,y,w,h);c.fillStyle=p.light;c.beginPath();c.arc(x+w*.68,y+h*.39,Math.min(w,h)*.24,0,7);c.fill();
+ if(type==='skyline'){skyline(c,x,y+h*.78,w,h*.55,p);c.fillStyle='#151b2c';c.fillRect(x,y+h*.8,w,h*.2);for(let i=0;i<20;i++){c.strokeStyle=i%2?p.light:p.accent;c.globalAlpha=.25;c.beginPath();c.moveTo(x+w*.2+i*w*.03,y+h*.85+i%3*8);c.lineTo(x+w*.5+i*w*.025,y+h*.85+i%3*8);c.stroke()}c.globalAlpha=1;palm(c,x+w*.13,y+h*.3,h*.006);}
+ if(type==='car'){c.fillStyle='#262139';c.fillRect(x,y+h*.7,w,h*.3);c.strokeStyle=p.light;c.lineWidth=3;c.beginPath();c.moveTo(x,y+h*.91);c.lineTo(x+w,y+h*.84);c.stroke();c.save();c.translate(x+w*.1,y+h*.43);c.scale(w/500,h/300);c.fillStyle='#131c2a';c.strokeStyle='#0e1422';c.lineWidth=8;c.beginPath();c.moveTo(0,92);c.lineTo(69,61);c.lineTo(152,7);c.lineTo(300,7);c.lineTo(355,67);c.lineTo(440,85);c.lineTo(455,148);c.lineTo(4,148);c.closePath();c.fill();c.stroke();c.fillStyle=p.accent;c.beginPath();c.moveTo(6,97);c.lineTo(440,92);c.lineTo(443,130);c.lineTo(5,130);c.fill();c.fillStyle='#90c1c0';c.beginPath();c.moveTo(99,61);c.lineTo(163,19);c.lineTo(235,19);c.lineTo(235,65);c.closePath();c.fill();c.beginPath();c.moveTo(250,19);c.lineTo(292,19);c.lineTo(330,64);c.lineTo(250,64);c.fill();for(let a of [92,363]){c.fillStyle='#0d111d';c.beginPath();c.ellipse(a,148,38,43,0,0,7);c.fill();c.fillStyle='#9b99ad';c.beginPath();c.ellipse(a,148,19,25,0,0,7);c.fill()}c.fillStyle='#fff2bb';c.fillRect(407,101,34,15);c.fillStyle='#ec5077';c.fillRect(12,103,20,12);c.restore();palm(c,x+w*.87,y+h*.15,h*.0038,-1);}
+ if(type==='flight'){skyline(c,x,y+h*.97,w,h*.24,p);c.save();c.translate(x+w*.53,y+h*.42);c.rotate(-.11);c.scale(w/420,w/420);c.fillStyle='#192238';c.strokeStyle='#192238';c.lineWidth=7;c.beginPath();c.ellipse(0,0,64,28,0,0,7);c.fill();c.beginPath();c.moveTo(-45,-5);c.lineTo(-157,-26);c.lineTo(-156,-60);c.lineTo(-177,-64);c.lineTo(-174,-13);c.lineTo(-48,15);c.fill();c.beginPath();c.moveTo(-2,-18);c.lineTo(-2,-44);c.moveTo(-130,-45);c.lineTo(130,-45);c.moveTo(-25,21);c.lineTo(-31,43);c.lineTo(57,43);c.stroke();c.fillStyle='#b8d3cf';c.beginPath();c.ellipse(31,-3,20,16,-.3,0,7);c.fill();c.restore();palm(c,x+w*.04,y+h*.55,h*.004);}
+ c.restore();}
+const cache=new WeakMap();
+function processed(img,ink){if(!ink)return img;if(cache.has(img))return cache.get(img);let a=document.createElement('canvas');let scale=Math.min(1,1000/img.naturalWidth);a.width=img.naturalWidth*scale;a.height=img.naturalHeight*scale;let k=a.getContext('2d',{willReadFrequently:true});k.drawImage(img,0,0,a.width,a.height);let d=k.getImageData(0,0,a.width,a.height),o=new Uint8ClampedArray(d.data);for(let y=1;y<a.height-1;y++)for(let x=1;x<a.width-1;x++){let i=(y*a.width+x)*4;let edge=0;for(let j=0;j<3;j++)edge+=Math.abs(o[i+j-4]-o[i+j+4])+Math.abs(o[i+j-a.width*4]-o[i+j+a.width*4]);let e=Math.max(.35,1-Math.max(0,edge-75)/500);for(let j=0;j<3;j++)d.data[i+j]=Math.round(o[i+j]/22)*22*e;}k.putImageData(d,0,0);cache.set(img,a);return a}
+function drawCover(canvas,images,caption,opts={}){
+ const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,p=palettes[opts.grade||'sunset'];c.clearRect(0,0,w,h);c.fillStyle='#121421';c.fillRect(0,0,w,h);let ps=panels(opts.layout);let assignments=opts.assignments||[0,-1,-2,-3,1];
+ ps.forEach((poly,i)=>{let xs=poly.map(a=>a[0]*w),ys=poly.map(a=>a[1]*h),b={x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};c.save();path(c,poly,w,h);c.clip();let ix=assignments[i],img=images[(ix>=0?ix:i)%images.length];if(ix<0){scene(c,b,ix===-1?'skyline':ix===-2?'car':'flight',p)}else if(img){let src=processed(img,opts.ink),sw=src.width||src.naturalWidth,sh=src.height||src.naturalHeight,crop=opts.crops?.[i]||{x:0,y:0,zoom:1},s=Math.max(b.w/sw,b.h/sh)*(crop.zoom||1),dw=sw*s,dh=sh*s;c.filter='saturate(1.3) contrast(1.1)';c.drawImage(src,b.x+(b.w-dw)/2+Math.min(1,Math.max(-1,crop.x||0))*(dw-b.w)/2,b.y+(b.h-dh)/2+Math.min(1,Math.max(-1,crop.y||0))*(dh-b.h)/2,dw,dh);c.filter='none';let tint=c.createLinearGradient(0,b.y,0,b.y+b.h);tint.addColorStop(0,p.sky[0]);tint.addColorStop(.55,p.sky[1]);tint.addColorStop(1,p.sky[2]);c.globalCompositeOperation='soft-light';c.globalAlpha=(opts.intensity??65)/100;c.fillStyle=tint;c.fillRect(b.x,b.y,b.w,b.h);c.globalCompositeOperation='source-over';c.globalAlpha=1}else scene(c,b,'skyline',p);let sh=c.createLinearGradient(0,b.y+b.h*.5,0,b.y+b.h);sh.addColorStop(0,'#11132200');sh.addColorStop(1,'#11132299');c.fillStyle=sh;c.fillRect(b.x,b.y,b.w,b.h);c.restore();c.save();path(c,poly,w,h);c.strokeStyle='#0f1320';c.lineWidth=w*.013;c.stroke();c.strokeStyle=p.light+'99';c.lineWidth=w*.0012;c.stroke();c.restore()});
+ // Small cast callouts are integrated into the key art.
+ c.save();c.textBaseline='middle';c.font=`800 ${w*.012}px Barlow`;c.letterSpacing=`${w*.0015}px`;
+ function castTag(text,x,y){c.fillStyle='#131725';c.fillRect(x*w,y*h,w*.19,h*.027);c.fillStyle=p.light;c.fillText(text,x*w+w*.008,y*h+h*.014)}
+ if(opts.layout!=='cinema'){castTag('THE CITY NEVER SLEEPS',.04,.285);castTag('THE GETAWAY',.04,.57);castTag('NO LOOKING BACK',.745,.565)}
+ c.restore();
+ // Print grain, deterministic so exports match previews exactly.
+ if(opts.grain){c.save();c.globalAlpha=.07;for(let i=0;i<14500;i++){let x=((i*7919)%10007)/10007*w,y=((i*3793)%9973)/9973*h;c.fillStyle=i%2?'#fff2d8':'#0b1223';c.fillRect(x,y,w*.0015,w*.0015)}c.restore()}
+ c.save();c.textBaseline='top';c.font=`800 ${w*.012}px Barlow`;c.letterSpacing=`${w*.003}px`;c.fillStyle='#fff0d3';c.shadowColor='#111';c.shadowBlur=5;c.fillText('AN AFTER HOURS ORIGINAL',w*.045,h*.042);c.textAlign='right';c.fillText('EST. 2026 / VOL. 01',w*.95,h*.042);c.restore();
+ // Custom title lockup uses open-license Anton, never official game branding.
+ let title=(caption||'').trim().toUpperCase();let words=title.split(/\s+/),lines=words.length>1?[words.slice(0,Math.ceil(words.length/2)).join(' '),words.slice(Math.ceil(words.length/2)).join(' ')]:[title];if(!title)lines=[];let base=Math.min(w*.148,h*.15);c.save();c.translate(w*.50,h*.69);c.rotate(-.055);c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';let fontSize=base;c.font=`${fontSize}px Anton`;while(lines.some(t=>c.measureText(t).width>w*.86)&&fontSize>18){fontSize-=2;c.font=`${fontSize}px Anton`}let lineH=fontSize*1.03;lines.forEach((line,i)=>{let y=(i-(lines.length-1)/2)*lineH;for(let e=11;e>0;e--){c.strokeStyle='#111627';c.lineWidth=w*.019;c.strokeText(line,e*.7,y+e);c.fillStyle='#a74168';c.fillText(line,e*.7,y+e)}c.strokeStyle='#101422';c.lineWidth=w*.018;c.strokeText(line,0,y);c.strokeStyle='#ffe5b9';c.lineWidth=w*.0045;c.strokeText(line,0,y);let g=c.createLinearGradient(0,y-fontSize/2,0,y+fontSize/2);g.addColorStop(0,'#fff9db');g.addColorStop(.4,'#ffe0a5');g.addColorStop(.47,'#f9bc88');g.addColorStop(.50,'#632b63');g.addColorStop(.54,'#fcb6ba');g.addColorStop(1,p.accent);c.fillStyle=g;c.fillText(line,0,y)});c.restore();
+ c.save();c.textAlign='center';c.textBaseline='middle';c.shadowColor='#121321';c.shadowBlur=8;let tag=(opts.tagline??'GOOD PEOPLE. BAD DECISIONS.').toUpperCase();let sz=w*.02;c.font=`800 ${sz}px Barlow`;while(c.measureText(tag).width>w*.83&&sz>8){sz--;c.font=`800 ${sz}px Barlow`}c.letterSpacing=`${w*.003}px`;c.fillStyle='#ffe7c3';c.fillText(tag,w*.5,h*.87);c.shadowBlur=0;c.letterSpacing='0px';c.font=`800 ${w*.0105}px Barlow`;c.fillStyle='#fff0d6';c.fillText('A STORY OF FAST NIGHTS & SLOW GETAWAYS',w*.5,h*.934);c.font=`${w*.0075}px Arial`;c.fillStyle='#e2cfbf';c.fillText('AFTER HOURS PRESENTS  /  YOUR CITY. YOUR CAST. YOUR STORY.',w*.5,h*.952);c.restore();c.strokeStyle=p.light;c.lineWidth=w*.002;c.strokeRect(w*.009,h*.009,w*.982,h*.982);
+ return ps;
 }
