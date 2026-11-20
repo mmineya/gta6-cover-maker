@@ -6,11 +6,12 @@ const palettes = {
  ice:{sky:['#182b58','#457fa2','#a5ddd3'],light:'#d4ffe6',accent:'#6edfd9',dark:'#121d31'}
 };
 function panels(layout='fracture'){
- if(layout==='blocks')return [[[.015,.015],[.33,.015],[.33,.31],[.015,.31]],[[.34,.015],[.985,.015],[.985,.64],[.34,.64]],[[.015,.325],[.33,.325],[.33,.65],[.015,.65]],[[.015,.665],[.49,.665],[.49,.985],[.015,.985]],[[.505,.655],[.985,.655],[.985,.985],[.505,.985]]];
- if(layout==='cinema')return [[[.015,.015],[.985,.015],[.985,.25],[.015,.25]],[[.24,.265],[.76,.265],[.8,.83],[.2,.83]],[[.015,.265],[.225,.265],[.185,.83],[.015,.83]],[[.775,.265],[.985,.265],[.985,.83],[.815,.83]],[[.015,.845],[.985,.845],[.985,.985],[.015,.985]]];
+ if(layout==='blocks')return [[[.015,.015],[.32,.015],[.33,.295],[.015,.31]],[[.335,.015],[.985,.015],[.985,.625],[.35,.64]],[[.015,.325],[.31,.31],[.33,.65],[.015,.65]],[[.015,.665],[.475,.665],[.49,.985],[.015,.985]],[[.49,.655],[.985,.655],[.985,.985],[.51,.985]]];
+ if(layout==='cinema')return [[[.015,.015],[.985,.015],[.985,.245],[.015,.25]],[[.245,.265],[.76,.265],[.8,.82],[.2,.83]],[[.015,.265],[.225,.265],[.185,.82],[.015,.83]],[[.775,.265],[.985,.265],[.985,.82],[.815,.83]],[[.015,.845],[.985,.845],[.985,.985],[.015,.985]]];
  return [[[.015,.015],[.49,.015],[.44,.305],[.015,.365]],[[.505,.015],[.985,.015],[.985,.665],[.665,.71],[.455,.30]],[[.015,.38],[.438,.32],[.59,.64],[.015,.72]],[[.015,.735],[.59,.66],[.68,.985],[.015,.985]],[[.61,.735],[.985,.68],[.985,.985],[.695,.985]]];
 }
 function path(c,p,w,h){c.beginPath();p.forEach(([x,y],i)=>i?c.lineTo(x*w,y*h):c.moveTo(x*w,y*h));c.closePath()}
+function centroid(poly){return poly.reduce((a,[x,y])=>[a[0]+x/poly.length,a[1]+y/poly.length],[0,0])}
 function palm(c,x,y,s,flip=1){c.save();c.translate(x,y);c.scale(s*flip,s);c.fillStyle='#121728';c.strokeStyle='#121728';c.lineWidth=8;c.beginPath();c.moveTo(0,140);c.quadraticCurveTo(10,58,0,0);c.stroke();for(let i=0;i<9;i++){let a=-Math.PI+.36*i;c.save();c.rotate(a);c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(35,-35,100,10);c.quadraticCurveTo(40,-9,0,0);c.fill();for(let j=2;j<7;j++){c.beginPath();c.moveTo(j*12,-11);c.lineTo(j*12+10,13+j);c.lineTo(j*12+3,-5);c.fill()}c.restore()}c.restore()}
 function skyline(c,x,y,w,h,p){for(let i=0;i<18;i++){let bh=h*(.15+((i*71+17)%100)/130),bw=w/21;c.fillStyle=i%3===0?'#45304b':'#242439';c.fillRect(x+i*w/18,y-bh,bw,bh);c.fillStyle=p.light;for(let r=0;r<7;r++)for(let k=0;k<2;k++)if((i+r+k)%3)c.fillRect(x+i*w/18+4+k*bw*.45,y-bh+6+r*bh/8,2,3)}}
 function scene(c,b,type,p){let {x,y,w,h}=b;c.save();c.beginPath();c.rect(x,y,w,h);c.clip();let g=c.createLinearGradient(0,y,0,y+h);p.sky.forEach((v,i)=>g.addColorStop(i/2,v));c.fillStyle=g;c.fillRect(x,y,w,h);c.fillStyle=p.light;c.beginPath();c.arc(x+w*.68,y+h*.39,Math.min(w,h)*.24,0,7);c.fill();
@@ -21,19 +22,77 @@ function scene(c,b,type,p){let {x,y,w,h}=b;c.save();c.beginPath();c.rect(x,y,w,h
 const cache=new WeakMap();
 function processed(img,ink){if(!ink)return img;if(cache.has(img))return cache.get(img);let a=document.createElement('canvas');let scale=Math.min(1,1000/img.naturalWidth);a.width=img.naturalWidth*scale;a.height=img.naturalHeight*scale;let k=a.getContext('2d',{willReadFrequently:true});k.drawImage(img,0,0,a.width,a.height);let d=k.getImageData(0,0,a.width,a.height),o=new Uint8ClampedArray(d.data);for(let y=1;y<a.height-1;y++)for(let x=1;x<a.width-1;x++){let i=(y*a.width+x)*4;let edge=0;for(let j=0;j<3;j++)edge+=Math.abs(o[i+j-4]-o[i+j+4])+Math.abs(o[i+j-a.width*4]-o[i+j+a.width*4]);let e=Math.max(.35,1-Math.max(0,edge-75)/500);for(let j=0;j<3;j++)d.data[i+j]=Math.round(o[i+j]/22)*22*e;}k.putImageData(d,0,0);cache.set(img,a);return a}
 function drawCover(canvas,images,caption,opts={}){
- const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,p=palettes[opts.grade||'sunset'];c.clearRect(0,0,w,h);c.fillStyle='#121421';c.fillRect(0,0,w,h);let ps=panels(opts.layout);let assignments=opts.assignments||[0,-1,-2,-3,1];
- ps.forEach((poly,i)=>{let xs=poly.map(a=>a[0]*w),ys=poly.map(a=>a[1]*h),b={x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};c.save();path(c,poly,w,h);c.clip();let ix=assignments[i],img=images[(ix>=0?ix:i)%images.length];if(ix<0){scene(c,b,ix===-1?'skyline':ix===-2?'car':'flight',p)}else if(img){let src=processed(img,opts.ink),sw=src.width||src.naturalWidth,sh=src.height||src.naturalHeight,crop=opts.crops?.[i]||{x:0,y:0,zoom:1},s=Math.max(b.w/sw,b.h/sh)*(crop.zoom||1),dw=sw*s,dh=sh*s;c.filter='saturate(1.3) contrast(1.1)';c.drawImage(src,b.x+(b.w-dw)/2+Math.min(1,Math.max(-1,crop.x||0))*(dw-b.w)/2,b.y+(b.h-dh)/2+Math.min(1,Math.max(-1,crop.y||0))*(dh-b.h)/2,dw,dh);c.filter='none';let tint=c.createLinearGradient(0,b.y,0,b.y+b.h);tint.addColorStop(0,p.sky[0]);tint.addColorStop(.55,p.sky[1]);tint.addColorStop(1,p.sky[2]);c.globalCompositeOperation='soft-light';c.globalAlpha=(opts.intensity??65)/100;c.fillStyle=tint;c.fillRect(b.x,b.y,b.w,b.h);c.globalCompositeOperation='source-over';c.globalAlpha=1}else scene(c,b,'skyline',p);let sh=c.createLinearGradient(0,b.y+b.h*.5,0,b.y+b.h);sh.addColorStop(0,'#11132200');sh.addColorStop(1,'#11132299');c.fillStyle=sh;c.fillRect(b.x,b.y,b.w,b.h);c.restore();c.save();path(c,poly,w,h);c.strokeStyle='#0f1320';c.lineWidth=w*.013;c.stroke();c.strokeStyle=p.light+'99';c.lineWidth=w*.0012;c.stroke();c.restore()});
- // Small cast callouts are integrated into the key art.
- c.save();c.textBaseline='middle';c.font=`800 ${w*.012}px Barlow`;c.letterSpacing=`${w*.0015}px`;
- function castTag(text,x,y){c.fillStyle='#131725';c.fillRect(x*w,y*h,w*.19,h*.027);c.fillStyle=p.light;c.fillText(text,x*w+w*.008,y*h+h*.014)}
- if(opts.layout!=='cinema'){castTag('THE CITY NEVER SLEEPS',.04,.285);castTag('THE GETAWAY',.04,.57);castTag('NO LOOKING BACK',.745,.565)}
+ const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,scale=w/1080,p=palettes[opts.grade||'sunset'];
+ c.clearRect(0,0,w,h);c.fillStyle='#121421';c.fillRect(0,0,w,h);
+ const ps=panels(opts.layout),assignments=opts.assignments||[0,-1,-2,-3,1];
+ ps.forEach((poly,i)=>{
+  const xs=poly.map(a=>a[0]*w),ys=poly.map(a=>a[1]*h),b={x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};
+  c.save();path(c,poly,w,h);c.clip();
+  const ix=assignments[i],img=images.length?images[(ix>=0?ix:i)%images.length]:null;
+  if(ix<0)scene(c,b,ix===-1?'skyline':ix===-2?'car':'flight',p);
+  else if(img){
+   const src=processed(img,opts.ink),sw=src.width||src.naturalWidth,sh=src.height||src.naturalHeight,crop=opts.crops?.[i]||{x:0,y:0,zoom:1},s=Math.max(b.w/sw,b.h/sh)*(crop.zoom||1),dw=sw*s,dh=sh*s;
+   c.filter='saturate(1.34) contrast(1.12) brightness(1.03)';
+   c.drawImage(src,b.x+(b.w-dw)/2+Math.min(1,Math.max(-1,crop.x||0))*(dw-b.w)/2,b.y+(b.h-dh)/2+Math.min(1,Math.max(-1,crop.y||0))*(dh-b.h)/2,dw,dh);c.filter='none';
+   const tint=c.createLinearGradient(0,b.y,0,b.y+b.h);tint.addColorStop(0,p.sky[0]);tint.addColorStop(.55,p.sky[1]);tint.addColorStop(1,p.sky[2]);
+   c.globalCompositeOperation='soft-light';c.globalAlpha=(opts.intensity??65)/100*.42;c.fillStyle=tint;c.fillRect(b.x,b.y,b.w,b.h);c.globalCompositeOperation='source-over';c.globalAlpha=1;
+  }else scene(c,b,'skyline',p);
+  // A gentle panel vignette keeps faces, cars, and scene silhouettes in focus.
+  const vignette=c.createRadialGradient(b.x+b.w*.5,b.y+b.h*.45,Math.min(b.w,b.h)*.14,b.x+b.w*.5,b.y+b.h*.45,Math.hypot(b.w,b.h)*.68);
+  vignette.addColorStop(0,'rgba(8,8,20,0)');vignette.addColorStop(.62,'rgba(8,8,20,.08)');vignette.addColorStop(1,'rgba(5,6,17,.43)');c.fillStyle=vignette;c.fillRect(b.x,b.y,b.w,b.h);
+  const shade=c.createLinearGradient(0,b.y+b.h*.48,0,b.y+b.h);shade.addColorStop(0,'rgba(12,12,27,0)');shade.addColorStop(1,'rgba(12,12,27,.48)');c.fillStyle=shade;c.fillRect(b.x,b.y,b.w,b.h);
+  c.restore();
+  c.save();path(c,poly,w,h);c.strokeStyle='#090b14';c.lineWidth=Math.max(2,scale*2.7);c.lineJoin='miter';c.stroke();c.strokeStyle='rgba(255,239,211,.38)';c.lineWidth=Math.max(1,scale*.8);c.stroke();c.restore();
+ });
+
+ // Rich sunset ink ties the individual panels into one finished poster.
+ const sunset=opts.grade==='sunset'||!opts.grade,wash=c.createLinearGradient(w*.08,0,w*.88,h);
+ if(sunset){wash.addColorStop(0,'#d83a98');wash.addColorStop(.46,'#ff713e');wash.addColorStop(1,'#42216f')}
+ else{wash.addColorStop(0,p.sky[0]);wash.addColorStop(.48,p.sky[1]);wash.addColorStop(1,p.sky[2])}
+ c.save();c.globalCompositeOperation='soft-light';c.globalAlpha=.52;c.fillStyle=wash;c.fillRect(0,0,w,h);
+ c.globalCompositeOperation='screen';c.globalAlpha=.095;c.fillRect(0,0,w,h);c.globalCompositeOperation='source-over';c.globalAlpha=1;
+ const edgeShade=c.createRadialGradient(w*.5,h*.43,Math.min(w,h)*.18,w*.5,h*.46,Math.max(w,h)*.78);edgeShade.addColorStop(0,'rgba(0,0,0,0)');edgeShade.addColorStop(.75,'rgba(9,5,24,.05)');edgeShade.addColorStop(1,'rgba(5,4,18,.34)');c.fillStyle=edgeShade;c.fillRect(0,0,w,h);c.restore();
+
+ // Deterministic fine print grain keeps the preview and exported PNG consistent.
+ if(opts.grain){c.save();c.globalAlpha=.055;const size=Math.max(1,scale*1.1);for(let i=0;i<22000;i++){const x=((i*7919)%10007)/10007*w,y=((i*3793)%9973)/9973*h;c.fillStyle=i%2?'#fff2d8':'#0b1223';c.fillRect(x,y,size,size)}c.restore()}
+
+ // Small solid caption strips label every frame without taking over the art.
+ const labels=['01 / CITY LIGHTS','02 / THE CAST','03 / GETAWAY','04 / NIGHT SHIFT','05 / NO WAY OUT'],colors=['#c62f69','#df542e','#6d337b','#a6304e','#3f477e'];
+ c.save();c.textBaseline='middle';c.font=`800 ${w*.0102}px Barlow`;c.letterSpacing=`${w*.0011}px`;
+ // Keep the first panel's callout below the poster header.
+ ps.forEach((poly,i)=>{const [cx,cy]=centroid(poly),[vx,vy]=poly[0],x=vx+(cx-vx)*.12,y=Math.max(vy+(cy-vy)*.12,i===0?.085:0),xs=poly.map(a=>a[0]),tw=Math.min(w*.19,(Math.max(...xs)-Math.min(...xs))*w*.78),th=h*.029;c.fillStyle='rgba(7,8,16,.7)';c.fillRect(x*w+scale*2,y*h+scale*3,tw,th);c.fillStyle=colors[i];c.fillRect(x*w,y*h,tw,th);c.fillStyle='rgba(255,255,255,.22)';c.fillRect(x*w,y*h,tw,Math.max(1,scale));c.fillStyle='#fffaf2';c.fillText(labels[i],x*w+w*.009,y*h+th*.52)});
  c.restore();
- // Print grain, deterministic so exports match previews exactly.
- if(opts.grain){c.save();c.globalAlpha=.07;for(let i=0;i<14500;i++){let x=((i*7919)%10007)/10007*w,y=((i*3793)%9973)/9973*h;c.fillStyle=i%2?'#fff2d8':'#0b1223';c.fillRect(x,y,w*.0015,w*.0015)}c.restore()}
- c.save();c.textBaseline='top';c.font=`800 ${w*.012}px Barlow`;c.letterSpacing=`${w*.003}px`;c.fillStyle='#fff0d3';c.shadowColor='#111';c.shadowBlur=5;c.fillText('AN AFTER HOURS ORIGINAL',w*.045,h*.042);c.textAlign='right';c.fillText('EST. 2026 / VOL. 01',w*.95,h*.042);c.restore();
- // Custom title lockup uses open-license Anton, never official game branding.
- // Measure with the same tracking used to draw the headline.
- let title=(caption||'').trim().toUpperCase();let words=title.split(/\s+/),lines=words.length>1?[words.slice(0,Math.ceil(words.length/2)).join(' '),words.slice(Math.ceil(words.length/2)).join(' ')]:[title];if(!title)lines=[];let base=Math.min(w*.148,h*.15);c.save();c.translate(w*.50,h*.69);c.rotate(-.055);c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';let fontSize=base;const setHeadlineFont=()=>{c.font=`${fontSize}px Anton`;c.letterSpacing=`${fontSize*(opts.headlineTracking??0)}px`};setHeadlineFont();while(lines.some(t=>c.measureText(t).width>w*.86)&&fontSize>18){fontSize-=2;setHeadlineFont()}let lineH=fontSize*1.03;lines.forEach((line,i)=>{let y=(i-(lines.length-1)/2)*lineH;for(let e=11;e>0;e--){c.strokeStyle='#111627';c.lineWidth=w*.019;c.strokeText(line,e*.7,y+e);c.fillStyle='#a74168';c.fillText(line,e*.7,y+e)}c.strokeStyle='#101422';c.lineWidth=w*.018;c.strokeText(line,0,y);c.strokeStyle='#ffe5b9';c.lineWidth=w*.0045;c.strokeText(line,0,y);let g=c.createLinearGradient(0,y-fontSize/2,0,y+fontSize/2);g.addColorStop(0,'#fff9db');g.addColorStop(.4,'#ffe0a5');g.addColorStop(.47,'#f9bc88');g.addColorStop(.50,'#632b63');g.addColorStop(.54,'#fcb6ba');g.addColorStop(1,p.accent);c.fillStyle=g;c.fillText(line,0,y)});c.restore();
- c.save();c.textAlign='center';c.textBaseline='middle';c.shadowColor='#121321';c.shadowBlur=8;let tag=(opts.tagline??'GOOD PEOPLE. BAD DECISIONS.').toUpperCase();let sz=w*.02;c.font=`800 ${sz}px Barlow`;while(c.measureText(tag).width>w*.83&&sz>8){sz--;c.font=`800 ${sz}px Barlow`}c.letterSpacing=`${w*.003}px`;c.fillStyle='#ffe7c3';c.fillText(tag,w*.5,h*.87);c.shadowBlur=0;c.letterSpacing='0px';c.font=`800 ${w*.0105}px Barlow`;c.fillStyle='#fff0d6';c.fillText('A STORY OF FAST NIGHTS & SLOW GETAWAYS',w*.5,h*.934);c.font=`${w*.0075}px Arial`;c.fillStyle='#e2cfbf';c.fillText('AFTER HOURS PRESENTS  /  YOUR CITY. YOUR CAST. YOUR STORY.',w*.5,h*.952);c.restore();c.strokeStyle=p.light;c.lineWidth=w*.002;c.strokeRect(w*.009,h*.009,w*.982,h*.982);
+
+ // Draw each header once, reserving a horizontal gap between its two labels.
+ const headerLeft=w*.045,headerRight=w*.95,headerGap=w*.06,headerWidth=(headerRight-headerLeft-headerGap)/2;
+ c.save();c.textBaseline='top';c.font=`800 ${w*.012}px Barlow`;c.letterSpacing=`${w*.0022}px`;c.fillStyle='#fff3dc';c.shadowColor='#100b20';c.shadowBlur=scale*5;
+ c.textAlign='left';c.fillText('AN AFTER HOURS ORIGINAL',headerLeft,h*.042,headerWidth);
+ c.textAlign='right';c.fillText('EST. 2026 / VOL. 01',headerRight,h*.042,headerWidth);c.restore();
+
+ // Custom open-license Anton lockup: large, tightly tracked, and sharply outlined.
+ let title=(caption||'').trim().toUpperCase(),words=title.split(/\s+/),lines=words.length>1?[words.slice(0,Math.ceil(words.length/2)).join(' '),words.slice(Math.ceil(words.length/2)).join('')]:[title];
+ if(!title)lines=[];
+ c.save();c.translate(w*.5,h*.665);c.rotate(-.045);c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.miterLimit=2;
+ let fontSize=Math.min(w*.182,h*.18);
+ const setHeadlineFont=()=>{c.font=`${fontSize}px Anton`;c.letterSpacing=`${fontSize*(opts.headlineTracking??-.04)}px`};
+ setHeadlineFont();while(lines.some(t=>c.measureText(t).width>w*.9)&&fontSize>18){fontSize-=2;setHeadlineFont()}
+ const lineH=fontSize*1.02,outline=3.5*scale,shadowOffset=6*scale;
+ lines.forEach((line,i)=>{
+  const y=(i-(lines.length-1)/2)*lineH;
+  c.strokeStyle='#080812';c.lineWidth=outline*2.7;c.strokeText(line,shadowOffset,y+shadowOffset);c.fillStyle='#080812';c.fillText(line,shadowOffset,y+shadowOffset);
+  c.strokeStyle='#080812';c.lineWidth=outline;c.strokeText(line,0,y);
+  const fill=c.createLinearGradient(0,y-fontSize*.53,0,y+fontSize*.53);fill.addColorStop(0,'#fff5d3');fill.addColorStop(.26,'#ffd172');fill.addColorStop(.52,'#f49a69');fill.addColorStop(.56,'#c94182');fill.addColorStop(1,p.accent);c.fillStyle=fill;c.fillText(line,0,y);
+  c.save();c.beginPath();c.rect(-w,y-fontSize*.55,w*2,fontSize*.24);c.clip();c.strokeStyle='#fff9df';c.globalAlpha=.88;c.lineWidth=Math.max(1,scale*1.15);c.strokeText(line,0,y);c.restore();
+ });
+ c.restore();
+
+ // A quiet backing fade makes the tagline and edition lines readable over any photo.
+ c.save();const footer=c.createLinearGradient(0,h*.835,0,h*.985);footer.addColorStop(0,'rgba(12,8,24,0)');footer.addColorStop(.4,'rgba(12,8,24,.30)');footer.addColorStop(1,'rgba(12,8,24,.56)');c.fillStyle=footer;c.fillRect(0,h*.835,w,h*.15);
+ c.textAlign='center';c.textBaseline='middle';c.shadowColor='#090712';c.shadowBlur=scale*6;
+ const tag=(opts.tagline??'GOOD PEOPLE. BAD DECISIONS.').toUpperCase();let sz=w*.02;c.font=`800 ${sz}px Barlow`;while(c.measureText(tag).width>w*.83&&sz>8){sz--;c.font=`800 ${sz}px Barlow`}c.letterSpacing=`${w*.0024}px`;c.fillStyle='#fff0d4';c.fillText(tag,w*.5,h*.87);
+ c.shadowBlur=0;c.letterSpacing='0px';c.font=`800 ${w*.0105}px Barlow`;c.fillStyle='#fff0d6';c.fillText('A STORY OF FAST NIGHTS & SLOW GETAWAYS',w*.5,h*.934);c.font=`${w*.0075}px Arial`;c.fillStyle='#e2cfbf';c.fillText('AFTER HOURS PRESENTS  /  YOUR CITY. YOUR CAST. YOUR STORY.',w*.5,h*.952);c.restore();
+
+ // Slightly displaced magenta/cyan keylines create a restrained chromatic edge.
+ c.save();c.lineWidth=Math.max(2,scale*4);c.strokeStyle='rgba(255,45,132,.48)';c.strokeRect(w*.006,h*.006,w*.988,h*.988);c.strokeStyle='rgba(57,226,255,.35)';c.strokeRect(w*.011,h*.011,w*.978,h*.978);c.strokeStyle=p.light;c.globalAlpha=.72;c.lineWidth=Math.max(1,scale*1.5);c.strokeRect(w*.009,h*.009,w*.982,h*.982);c.restore();
  return ps;
 }
